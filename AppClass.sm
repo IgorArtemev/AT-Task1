@@ -1,0 +1,54 @@
+%start Map1::Heading
+%class AppClass
+
+%map Map1
+%%
+// State		Transition		End State		Action(s)
+
+Default{
+                Alpha			    Error			{ Unacceptable(); }
+                Colon		Error			{ Unacceptable(); }
+                Slash		Error			{ Unacceptable(); }
+				EOS				    Error			{ Unacceptable(); }
+				Heading		        Heading			{ClearSMC();}
+				Unknown             Error           { Unacceptable(); }
+}
+
+Heading {
+				Alpha [ ctxt.isValidHeading() ]			Heading			        { CounterInc(); }
+				Colon	[ ctxt.checkHeading() ]			Heading2    		{ CounterZero(); clearSubstring();}
+}
+
+Heading2 {
+				Slash			Heading3 {}
+}
+
+Heading3 {
+				Slash			Server { CounterZero();}
+}
+
+Server {
+				Alpha  [ ctxt.isValid() ]				Server			{CounterInc(); }
+				Slash [ ctxt.isValid() and ctxt.isValidName() ]				Catalog			{CounterInc(); set_name();clearSubstring();}
+}
+
+Catalog {
+				Alpha [ ctxt.isValid() ]			Catalog				{CounterInc();}
+				Slash [ ctxt.isValid()  and ctxt.isValidName()]			File				{CounterInc();clearSubstring();}
+}
+
+File{
+				Alpha [ ctxt.isValid() ]			File				{CounterInc();}
+				Slash [ ctxt.isValid() and ctxt.isValidName()]			File				{CounterInc();clearSubstring();}
+				EOS [ ctxt.isValid() and ctxt.isValidName()]				OK					{Acceptable();CounterZero(); clearSubstring();}
+}
+
+OK {
+                EOS				OK				{ Acceptable(); }
+}
+
+Error {
+				EOS				nil				{Unacceptable();}
+}
+
+%%
