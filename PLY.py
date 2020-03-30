@@ -18,7 +18,6 @@ class RecognizerPLY(object):
     def check_strings_from_file(self, data):
         self.__Servers_A.clear()
         f_time = open(self.__time_file, 'w')
-        f_time.write('iter time' + '\n')
         start_time = time.perf_counter()
 
         f = open(data)
