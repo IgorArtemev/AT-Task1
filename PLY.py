@@ -10,25 +10,44 @@ class RecognizerPLY(object):
     __time_file = 'PLY\\time'
     __file = False
     __Servers_A = dict()
+    _A=[]
 
-    def __init__(self, from_file=False):
-        self.__parser = MyParser(from_file)
+    def __init__(self, from_file=False, strings=None):
+        self.__parser = MyParser()
         self.__file = from_file
+        if from_file:
+            self.__f = open(self.__result_file, 'w')
+            self.__strings = strings
+    
+    def __del__(self):
+        if self.__file:
+            self.__f.close()
 
-    def check_strings_from_file(self, data):
+    def check_strings_from_file(self):
         self.__Servers_A.clear()
         f_time = open(self.__time_file, 'w')
+        f_time = open(self.__time_file, 'a')
         start_time = time.perf_counter()
-
-        f = open(data)
-        nf = f.read()
-        f.close()
-
-        self.__parser.check_string(nf)
-        self.__Servers_A = self.__parser.get_A()
-
+        count = 0
+        for i in range(len(self.__strings) - 1):
+            s=self.__strings[i]
+            if (len(s)>69):
+                self.__f.write(s + ' - ERROR' + '\n')
+            else:
+                result=self.__parser.check_string(s)
+                if result is not None:
+                    count+=1
+                    self.__f.write(s + ' - OK' + '\n')
+                    if self.__Servers_A.get(result) is None:
+                        self.__Servers_A.setdefault(result, 1)
+                    else:
+                        self.__Servers_A[result] += 1
+                else:
+                    self.__f.write(s + ' - ERROR' + '\n')
+            
         f_time.write(str(time.perf_counter() - start_time) + '\n')
         f_time.close()
+        print(count)
 
     def check_strings_from_console(self):
         self.__Servers_A.clear()
@@ -45,15 +64,13 @@ class RecognizerPLY(object):
             if (len(user_string)>69):
                 print("- ERROR\n")
             else:
-                self.__parser.check_string(user_string)
-                if self.__parser.get_A().keys():
+                result=self.__parser.check_string(user_string)
+                if result is not None:
                     print("- OK\n")
-                    res = list(self.__parser.get_A().keys())[0]
-
-                    if self.__Servers_A.get(res) is None:
-                        self.__Servers_A.setdefault(res, 1)
+                    if self.__Servers_A.get(result) is None:
+                        self.__Servers_A.setdefault(result, 1)
                     else:
-                        self.__Servers_A[res] += 1
+                        self.__Servers_A[result] += 1
                 else:
                     print("- ERROR\n")
 
@@ -73,6 +90,19 @@ class RecognizerPLY(object):
     def get_Time(self):
         return self.__time_file
 
+    def get_file_content(self):
+        try:
+            __f = open(self.__result_file)
+        except IOError as e:
+            self.check_strings_from_file()
+            __f = open(self.__result_file)
+
+        nf = __f.read()
+        self.__A = nf.split('\n')
+
+        __f.close()
+        return self.__A
+
 
 if __name__ == "__main__":
 
@@ -85,9 +115,9 @@ if __name__ == "__main__":
         if input_type == "file":
             print("Input filename:")
             filename = input()
-            generator.Generator(10000, filename)
-            recognizer = RecognizerPLY(True)
-            recognizer.check_strings_from_file(filename)
+            all_strings = generator.Generator(100000, filename).get_file_content()
+            recognizer = RecognizerPLY(True,all_strings)
+            recognizer.check_strings_from_file()
             recognizer.analyze_Servers()
             print("Data saved to files")
             print("Show statistic (yes to show):")
@@ -99,8 +129,7 @@ if __name__ == "__main__":
                 try:
                     f = open(recognizer.get_Time())
                     nf = f.read()
-                    print("Time:", nf.split('\n')[1])
-
+                    print("Time:", nf.split('\n')[0])
                     f.close()
                 except IOError as e:
                     print("---- Error ----")
@@ -111,4 +140,3 @@ if __name__ == "__main__":
         else:
             print("You are wrong! Try again")
             dialog = True
-
